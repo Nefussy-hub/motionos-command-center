@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MotionOS | CTO Command Center</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "surface-dim":"#0e0e0e","surface":"#0e0e0e","background":"#0e0e0e",
+        "surface-container-lowest":"#000000","surface-container-low":"#131313",
+        "surface-container":"#1a1919","surface-container-high":"#201f1f",
+        "surface-container-highest":"#262626","surface-variant":"#262626",
+        "surface-bright":"#2c2c2c","on-surface":"#ffffff","on-background":"#ffffff",
+        "on-surface-variant":"#adaaaa","outline":"#777575","outline-variant":"#494847",
+        "primary":"#f3ffca","primary-dim":"#beee00","primary-fixed":"#cafd00",
+        "primary-container":"#cafd00","on-primary":"#516700","on-primary-container":"#4a5e00",
+        "secondary":"#00f4fe","secondary-dim":"#00e5ee","secondary-container":"#00696e",
+        "on-secondary":"#00575b","on-secondary-container":"#dffdff",
+        "tertiary":"#ffeea5","tertiary-dim":"#edd13a","tertiary-container":"#fce047",
+        "on-tertiary":"#665800","on-tertiary-container":"#5d5000",
+        "error":"#ff7351","error-dim":"#d53d18","error-container":"#b92902",
+        "on-error":"#450900","on-error-container":"#ffd2c8",
+      },
+      fontFamily:{
+        "headline":["Space Grotesk"],
+        "body":["Inter"],
+        "label":["Inter"],
+        "mono":["JetBrains Mono"]
+      },
+    },
+  },
+}
+</script>
+<style>
+body{background:#0e0e0e;color:#fff;-webkit-font-smoothing:antialiased;min-height:100dvh}
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24}
+.glass-card{background:rgba(32,31,31,.4);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.glass-panel{background:rgba(19,19,19,.6);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}
+.kinetic-gradient{background:linear-gradient(135deg,#f3ffca 0%,#cafd00 100%)}
+.pulse-dot{animation:pulseDot 1.4s ease-in-out infinite}
+@keyframes pulseDot{0%,100%{opacity:1}50%{opacity:.3}}
+.glow-primary{box-shadow:0 0 40px rgba(204,255,0,.15)}
+.glow-secondary{box-shadow:0 0 32px rgba(0,244,254,.15)}
+.glow-error{box-shadow:0 0 32px rgba(255,34,0,.25)}
+.fade-in{animation:fadeIn .4s ease-out}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.15)}
+.bar-fill{transition:width 1s cubic-bezier(.2,.8,.2,1)}
+.scanner-line{height:1px;background:linear-gradient(90deg,transparent,#00f4fe,transparent);animation:scan 4s linear infinite}
+@keyframes scan{0%{transform:translateY(-20px);opacity:0}50%{opacity:1}100%{transform:translateY(600px);opacity:0}}
+.typing-dots span{animation:typingBounce 1.4s infinite;display:inline-block;width:6px;height:6px;border-radius:50%;background:#adaaaa;margin:0 2px}
+.typing-dots span:nth-child(2){animation-delay:.2s}
+.typing-dots span:nth-child(3){animation-delay:.4s}
+@keyframes typingBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.msg-enter{animation:slideUp .3s ease-out}
+.hud-border{border:1px solid rgba(255,255,255,.04)}
+</style>
+</head>
+<body class="font-body selection:bg-primary selection:text-on-primary overflow-x-hidden">
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+const { createRoot } = ReactDOM;
+
+// ============================================================
+// DATA / STATE
+// ============================================================
+
+const TEAMS = [
+  { id:'team-1', name:'Core Engine', lead:'CTO-PRIME', agents:['Engineer-Core','Engineer-Demo','Engineer-SDK','QA-Agent','Reporter'], status:'active', sprint:'Sprint 10', color:'primary' },
+  { id:'team-2', name:'Creator Platform', lead:'Creator-Frontend', agents:['Creator-Backend','Creator-Growth'], status:'active', sprint:'Sprint 9', color:'secondary' },
+  { id:'team-3', name:'Consumer App', lead:'App-Engine', agents:['App-Mobile','App-Growth'], status:'active', sprint:'Sprint 9', color:'tertiary' },
+  { id:'team-4', name:'Platform Integration', lead:'TBD', agents:[], status:'queued', sprint:'Sprint 11+', color:'outline' },
+];
+
+const SPRINTS = [
+  { id:10, name:'Sprint 10', status:'active', progress:42, tasks:18, done:7, blocked:1 },
+  { id:9, name:'Sprint 9', status:'completed', progress:100, tasks:22, done:22, blocked:0 },
+  { id:8, name:'Sprint 8', status:'completed', progress:100, tasks:19, done:19, blocked:0 },
+  { id:7, name:'Sprint 7', status:'completed', progress:100, tasks:16, done:16, blocked:0 },
+];
+
+const DEPLOYMENTS = [
+  { env:'Production', url:'motionos-core.vercel.app', status:'live', version:'v0.9.4', time:'2h ago' },
+  { env:'Investor Demo', url:'motionos-core.vercel.app/investor.html', status:'live', version:'v0.9.4', time:'2h ago' },
+  { env:'Staging', url:'staging.motionos.dev', status:'building', version:'v0.9.5-rc1', time:'3m ago' },
+  { env:'iPhone Tunnel', url:'cloudflare tunnel', status:'offline', version:'—', time:'—' },
+];
+
+const TEST_HISTORY = [
+  { date:'Apr 17', total:1323, pass:1323, fail:0, files:33 },
+  { date:'Apr 16', total:1310, pass:1308, fail:2, files:33 },
+  { date:'Apr 15', total:1295, pass:1295, fail:0, files:32 },
+  { date:'Apr 14', total:1280, pass:1278, fail:2, files:32 },
+  { date:'Apr 13', total:1250, pass:1250, fail:0, files:31 },
+  { date:'Apr 12', total:1200, pass:1200, fail:0, files:30 },
+  { date:'Apr 11', total:1150, pass:1147, fail:3, files:29 },
+];
+
+const FORM_ENVELOPES = [
+  { name:'Squat', nodes:28, status:'complete', coverage:'98%' },
+  { name:'Push-up', nodes:28, status:'complete', coverage:'96%' },
+  { name:'Deadlift', nodes:28, status:'complete', coverage:'94%' },
+  { name:'Plank', nodes:28, status:'complete', coverage:'95%' },
+  { name:'Lunge', nodes:28, status:'complete', coverage:'92%' },
+  { name:'Bicep Curl', nodes:24, status:'in-progress', coverage:'78%' },
+  { name:'Overhead Press', nodes:0, status:'planned', coverage:'—' },
+  { name:'Row', nodes:0, status:'planned', coverage:'—' },
+];
+
+const ACTIVITY_FEED = [
+  { type:'deploy', msg:'Production deployed v0.9.4', time:'2h ago', icon:'rocket_launch', color:'primary' },
+  { type:'test', msg:'All 1,323 tests passing (33 files)', time:'3h ago', icon:'check_circle', color:'primary' },
+  { type:'pr', msg:'PR #142 merged: FormEnvelope bicep-curl WIP', time:'4h ago', icon:'merge', color:'secondary' },
+  { type:'agent', msg:'CTO-PRIME completed Sprint 10 planning', time:'5h ago', icon:'smart_toy', color:'tertiary' },
+  { type:'alert', msg:'iPhone camera.html: FORM score stuck at 100 — investigating', time:'6h ago', icon:'warning', color:'error' },
+  { type:'pr', msg:'PR #141 merged: Auth integration CB-6/CB-7', time:'8h ago', icon:'merge', color:'secondary' },
+  { type:'deploy', msg:'Investor demo updated with new skeleton overlay', time:'1d ago', icon:'rocket_launch', color:'primary' },
+  { type:'test', msg:'Test count crossed 1,300 milestone', time:'1d ago', icon:'celebration', color:'tertiary' },
+];
+
+const AUTO_ALERTS = [
+  { severity:'info', msg:'Sprint 10 at 42% — on track for completion by Apr 24', time:'now' },
+  { severity:'warning', msg:'1 blocked task in Sprint 10: iPhone camera FORM score', time:'2h ago' },
+  { severity:'success', msg:'Test suite healthy: 1,323/1,323 passing', time:'3h ago' },
+  { severity:'info', msg:'Bicep Curl FormEnvelope at 78% coverage — needs 28 nodes minimum', time:'5h ago' },
+];
+
+// ============================================================
+// ICON HELPER
+// ============================================================
+const Icon = ({ name, fill=false, className="" }) => (
+  <span className={`material-symbols-outlined ${className}`}
+    style={fill ? {fontVariationSettings:"'FILL' 1"} : {}}>{name}</span>
+);
+
+// ============================================================
+// METRIC CARD
+// ============================================================
+const MetricCard = ({ label, value, sub, icon, color="primary", trend }) => (
+  <div className="glass-card hud-border rounded-xl p-4 hover:border-white/10 transition-all group">
+    <div className="flex items-start justify-between mb-3">
+      <div className={`w-9 h-9 rounded-lg bg-${color}/10 flex items-center justify-center`}>
+        <Icon name={icon} className={`text-${color} text-lg`} />
+      </div>
+      {trend && (
+        <span className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded-full ${
+          trend > 0 ? 'bg-primary/10 text-primary' : trend < 0 ? 'bg-error/10 text-error' : 'bg-white/5 text-on-surface-variant'
+        }`}>
+          {trend > 0 ? '+' : ''}{trend}%
+        </span>
+      )}
+    </div>
+    <div className={`font-headline font-black text-2xl text-${color} leading-none mb-1`}>{value}</div>
+    <div className="font-label text-[10px] text-on-surface-variant uppercase tracking-widest">{label}</div>
+    {sub && <div className="font-label text-[10px] text-on-surface-variant/60 mt-1">{sub}</div>}
+  </div>
+);
+
+// ============================================================
+// SPRINT TRACKER
+// ============================================================
+const SprintTracker = () => {
+  const [expanded, setExpanded] = useState(null);
+  return (
+    <div className="glass-card hud-border rounded-xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-headline font-bold text-sm uppercase tracking-wide flex items-center gap-2">
+          <Icon name="sprint" className="text-primary text-base" />
+          Sprint Progress
+        </h3>
+        <span className="font-mono text-[10px] text-on-surface-variant">Q2 2026</span>
+      </div>
+      <div className="space-y-3">
+        {SPRINTS.map(s => (
+          <div key={s.id} className="group">
+            <button onClick={() => setExpanded(expanded===s.id?null:s.id)} className="w-full text-left">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2">
+                  <span className={`font-headline font-bold text-xs ${s.status==='active'?'text-primary':'text-on-surface-variant'}`}>{s.name}</span>
+                  {s.status === 'active' && (
+                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/10 border border-primary/20">
+                      <span className="w-1 h-1 rounded-full bg-primary pulse-dot"></span>
+                      <span className="font-mono text-[8px] text-primary font-bold">ACTIVE</span>
+                    </span>
+                  )}
+                </div>
+                <span className="font-mono text-xs text-on-surface-variant">{s.done}/{s.tasks}</span>
+              </div>
+              <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                <div className={`h-full rounded-full bar-fill ${s.status==='active'?'bg-gradient-to-r from-primary-dim to-primary':'bg-white/15'}`}
+                  style={{width:`${s.progress}%`}} />
+              </div>
+            </button>
+            {expanded === s.id && (
+              <div className="mt-2 pl-2 border-l border-white/5 space-y-1 fade-in">
+                <div className="font-label text-[10px] text-on-surface-variant">
+                  {s.done} done · {s.tasks - s.done - s.blocked} in progress · {s.blocked} blocked
+                </div>
+                {s.blocked > 0 && (
+                  <div className="flex items-center gap-1.5 text-error text-[10px] font-label">
+                    <Icon name="block" className="text-xs" />
+                    iPhone camera FORM score stuck at 100
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// TEAM STATUS
+// ============================================================
+const TeamStatus = () => (
+  <div className="glass-card hud-border rounded-xl p-5">
+    <h3 className="font-headline font-bold text-sm uppercase tracking-wide flex items-center gap-2 mb-4">
+      <Icon name="groups" className="text-secondary text-base" />
+      Agent Teams
+    </h3>
+    <div className="space-y-3">
+      {TEAMS.map(t => (
+        <div key={t.id} className="flex items-center gap-3 p-3 rounded-lg bg-white/[.02] hover:bg-white/[.04] transition-colors">
+          <div className={`w-2 h-2 rounded-full ${t.status==='active'?`bg-${t.color} pulse-dot`:'bg-outline'}`} />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-headline font-bold text-xs">{t.name}</span>
+              <span className={`font-mono text-[8px] text-${t.color} bg-${t.color}/10 px-1.5 py-0.5 rounded`}>{t.sprint}</span>
+            </div>
+            <div className="font-label text-[10px] text-on-surface-variant mt-0.5">
+              Lead: {t.lead} · {t.agents.length} agents
+            </div>
+          </div>
+          <span className={`font-mono text-[9px] font-bold uppercase ${t.status==='active'?`text-${t.color}`:'text-outline'}`}>
+            {t.status}
+          </span>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+// ============================================================
+// TEST HEALTH
+// ============================================================
+const TestHealth = () => {
+  const latest = TEST_HISTORY[0];
+  const maxTotal = Math.max(...TEST_HISTORY.map(t=>t.total));
+  return (
+    <div className="glass-card hud-border rounded-xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-headline font-bold text-sm uppercase tracking-wide flex items-center gap-2">
+          <Icon name="bug_report" className="text-primary text-base" />
+          Test Suite
+        </h3>
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary/10 border border-primary/20">
+          <Icon name="check_circle" fill className="text-primary text-xs" />
+          <span className="font-mono text-[9px] text-primary font-bold">ALL PASS</span>
+        </div>
+      </div>
+      <div className="flex items-baseline gap-2 mb-1">
+        <span className="font-headline font-black text-3xl text-primary">{latest.total.toLocaleString()}</span>
+        <span className="font-label text-xs text-on-surface-variant">tests</span>
+        <span className="font-label text-[10px] text-on-surface-variant ml-auto">{latest.files} files</span>
+      </div>
+      <div className="flex items-center gap-4 mb-4">
+        <div className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full bg-primary"></span>
+          <span className="font-mono text-[10px] text-on-surface-variant">{latest.pass} pass</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full bg-error"></span>
+          <span className="font-mono text-[10px] text-on-surface-variant">{latest.fail} fail</span>
+        </div>
+      </div>
+      {/* Mini bar chart */}
+      <div className="flex items-end gap-1 h-16">
+        {TEST_HISTORY.slice().reverse().map((t, i) => (
+          <div key={i} className="flex-1 flex flex-col items-center gap-1">
+            <div className="w-full rounded-sm overflow-hidden" style={{height:`${(t.total/maxTotal)*100}%`}}>
+              <div className={`w-full h-full ${t.fail > 0 ? 'bg-gradient-to-t from-error/40 to-primary/40' : 'bg-gradient-to-t from-primary/20 to-primary/50'}`} />
+            </div>
+            <span className="font-mono text-[7px] text-on-surface-variant/50">{t.date.split(' ')[1]}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// DEPLOYMENTS
+// ============================================================
+const DeploymentStatus = () => (
+  <div className="glass-card hud-border rounded-xl p-5">
+    <h3 className="font-headline font-bold text-sm uppercase tracking-wide flex items-center gap-2 mb-4">
+      <Icon name="cloud_upload" className="text-secondary text-base" />
+      Deployments
+    </h3>
+    <div className="space-y-2">
+      {DEPLOYMENTS.map((d, i) => (
+        <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg bg-white/[.02]">
+          <div className={`w-2 h-2 rounded-full ${
+            d.status==='live'?'bg-primary pulse-dot':d.status==='building'?'bg-tertiary pulse-dot':'bg-outline'
+          }`} />
+          <div className="flex-1 min-w-0">
+            <div className="font-headline font-bold text-[11px]">{d.env}</div>
+            <div className="font-mono text-[9px] text-on-surface-variant truncate">{d.url}</div>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <div className={`font-mono text-[9px] font-bold uppercase ${
+              d.status==='live'?'text-primary':d.status==='building'?'text-tertiary':'text-outline'
+            }`}>{d.status}</div>
+            <div className="font-mono text-[8px] text-on-surface-variant/50">{d.version}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+// ============================================================
+// FORM ENVELOPES
+// ============================================================
+const FormEnvelopes = () => (
+  <div className="glass-card hud-border rounded-xl p-5">
+    <h3 className="font-headline font-bold text-sm uppercase tracking-wide flex items-center gap-2 mb-4">
+      <Icon name="accessibility_new" className="text-tertiary text-base" />
+      Form Envelope Database
+    </h3>
+    <div className="grid grid-cols-2 gap-2">
+      {FORM_ENVELOPES.map((f, i) => {
+        const statusColor = f.status==='complete'?'primary':f.status==='in-progress'?'tertiary':'outline';
+        return (
+          <div key={i} className="p-3 rounded-lg bg-white/[.02] border border-white/[.03]">
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-headline font-bold text-[11px]">{f.name}</span>
+              <span className={`w-1.5 h-1.5 rounded-full bg-${statusColor} ${f.status==='in-progress'?'pulse-dot':''}`} />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[9px] text-on-surface-variant">{f.nodes > 0 ? `${f.nodes} nodes` : 'planned'}</span>
+              <span className={`font-mono text-[9px] font-bold text-${statusColor}`}>{f.coverage}</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+);
+
+// ============================================================
+// ACTIVITY FEED
+// ============================================================
+const ActivityFeed = () => (
+  <div className="glass-card hud-border rounded-xl p-5">
+    <h3 className="font-headline font-bold text-sm uppercase tracking-wide flex items-center gap-2 mb-4">
+      <Icon name="timeline" className="text-primary text-base" />
+      Activity Feed
+    </h3>
+    <div className="space-y-1 max-h-[320px] overflow-y-auto pr-1">
+      {ACTIVITY_FEED.map((a, i) => (
+        <div key={i} className="flex items-start gap-2.5 py-2 border-b border-white/[.03] last:border-0">
+          <div className={`w-6 h-6 rounded-md bg-${a.color}/10 flex items-center justify-center flex-shrink-0 mt-0.5`}>
+            <Icon name={a.icon} className={`text-${a.color} text-sm`} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-label text-xs text-white/90 leading-snug">{a.msg}</div>
+            <div className="font-mono text-[9px] text-on-surface-variant/50 mt-0.5">{a.time}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+// ============================================================
+// CLAUDE AI COMMAND PANEL
+// ============================================================
+
+// Monitor endpoint for scheduled health checks
+const MONITOR_URL = '/.netlify/functions/monitor';
+
+const ClaudePanel = ({ isOpen, onToggle }) => {
+  const [messages, setMessages] = useState([
+    { role:'assistant', content:"Command Center online. I'm monitoring MotionOS — all systems nominal.\n\n**Quick status:**\n• Sprint 10: 42% (7/18 tasks, 1 blocked)\n• Tests: 1,323/1,323 passing\n• Production: v0.9.4 live\n• 1 alert: iPhone camera FORM score\n\nWhat would you like to focus on?" },
+  ]);
+  const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [activeTab, setActiveTab] = useState('chat'); // chat | alerts | quick
+  const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior:'smooth' });
+  }, [messages]);
+
+  // Conversation history for Claude API (excludes the welcome message)
+  const apiMessagesRef = useRef([]);
+
+  const sendToClaudeAPI = async (userMsg) => {
+    setIsTyping(true);
+
+    // Add user message to API history
+    apiMessagesRef.current.push({ role: 'user', content: userMsg });
+
+    try {
+      const res = await fetch('/.netlify/functions/claude', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: apiMessagesRef.current,
+          max_tokens: 1024,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `API error ${res.status}`);
+      }
+
+      const data = await res.json();
+      const assistantMsg = data.content?.[0]?.text || 'No response received.';
+
+      // Add assistant response to history
+      apiMessagesRef.current.push({ role: 'assistant', content: assistantMsg });
+
+      setIsTyping(false);
+      setMessages(prev => [...prev, { role: 'assistant', content: assistantMsg }]);
+    } catch (error) {
+      setIsTyping(false);
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: `**Connection Error:** ${error.message}\n\nCheck that ANTHROPIC_API_KEY is set in Netlify environment variables.`
+      }]);
+    }
+  };
+
+  const handleSend = () => {
+    if (!input.trim()) return;
+    const userMsg = input.trim();
+    setMessages(prev => [...prev, { role:'user', content:userMsg }]);
+    setInput('');
+    sendToClaudeAPI(userMsg);
+  };
+
+  const quickActions = [
+    { label:'Sprint Status', query:'What is the sprint progress?' },
+    { label:'Test Health', query:'How are the tests?' },
+    { label:'Blockers', query:'What are the current blockers?' },
+    { label:'Deployments', query:'Show deployment status' },
+  ];
+
+  // Render markdown-like bold
+  const renderContent = (text) => {
+    return text.split('\n').map((line, i) => {
+      const parts = line.split(/(\*\*[^*]+\*\*)/g).map((part, j) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <strong key={j} className="text-white font-semibold">{part.slice(2,-2)}</strong>;
+        }
+        return part;
+      });
+      return <div key={i} className={line === '' ? 'h-2' : ''}>{parts}</div>;
+    });
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed right-0 top-0 bottom-0 w-full max-w-md z-50 flex flex-col bg-surface-container-lowest border-l border-white/5 shadow-2xl fade-in">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-surface-container-low/50 backdrop-blur-xl">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+            <Icon name="smart_toy" className="text-primary text-base" fill />
+          </div>
+          <div>
+            <div className="font-headline font-bold text-xs">Claude Command</div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary pulse-dot"></span>
+              <span className="font-mono text-[8px] text-primary">CONNECTED</span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          {/* Tab switcher */}
+          {['chat','alerts'].map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)}
+              className={`px-3 py-1.5 rounded-md font-mono text-[9px] font-bold uppercase transition-all ${
+                activeTab===tab ? 'bg-white/10 text-white' : 'text-on-surface-variant hover:text-white'
+              }`}>
+              {tab}
+            </button>
+          ))}
+          <button onClick={onToggle} className="ml-2 p-1.5 rounded-md hover:bg-white/5 transition-colors">
+            <Icon name="close" className="text-on-surface-variant text-base" />
+          </button>
+        </div>
+      </div>
+
+      {activeTab === 'chat' ? (
+        <>
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+            {messages.map((m, i) => (
+              <div key={i} className={`msg-enter flex ${m.role==='user'?'justify-end':'justify-start'}`}>
+                <div className={`max-w-[85%] rounded-xl px-3.5 py-2.5 ${
+                  m.role==='user'
+                    ? 'bg-primary/15 border border-primary/20 text-white'
+                    : 'bg-surface-container-high/50 border border-white/5 text-on-surface-variant'
+                }`}>
+                  <div className="font-label text-xs leading-relaxed whitespace-pre-wrap">
+                    {renderContent(m.content)}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {isTyping && (
+              <div className="flex justify-start">
+                <div className="bg-surface-container-high/50 border border-white/5 rounded-xl px-4 py-3">
+                  <div className="typing-dots"><span></span><span></span><span></span></div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Quick actions */}
+          <div className="px-4 py-2 flex gap-1.5 overflow-x-auto">
+            {quickActions.map((a, i) => (
+              <button key={i} onClick={() => {
+                setMessages(prev => [...prev, { role:'user', content:a.query }]);
+                sendToClaudeAPI(a.query);
+              }}
+                className="flex-shrink-0 px-3 py-1.5 rounded-full bg-white/5 border border-white/5 font-mono text-[9px] text-on-surface-variant hover:text-white hover:bg-white/10 transition-all">
+                {a.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Input */}
+          <div className="px-4 py-3 border-t border-white/5 bg-surface-container-low/30">
+            <div className="flex items-center gap-2 bg-surface-container-high/50 rounded-xl px-3 py-2 border border-white/5 focus-within:border-primary/30 transition-colors">
+              <input
+                ref={inputRef}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSend()}
+                placeholder="Ask about sprints, tests, teams..."
+                className="flex-1 bg-transparent text-white text-xs font-label placeholder:text-on-surface-variant/40 outline-none"
+              />
+              <button onClick={handleSend} className={`p-1.5 rounded-lg transition-all ${input.trim() ? 'bg-primary text-on-primary' : 'text-on-surface-variant/30'}`}>
+                <Icon name="send" className="text-sm" />
+              </button>
+            </div>
+          </div>
+        </>
+      ) : (
+        /* Alerts Tab */
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+          <div className="flex items-center gap-2 mb-3">
+            <Icon name="notifications_active" className="text-tertiary text-base" />
+            <span className="font-headline font-bold text-xs uppercase tracking-wide">Auto-Monitor Alerts</span>
+          </div>
+          {AUTO_ALERTS.map((a, i) => {
+            const colors = {
+              info: { bg:'bg-secondary/5', border:'border-secondary/15', icon:'info', iconColor:'text-secondary' },
+              warning: { bg:'bg-tertiary/5', border:'border-tertiary/15', icon:'warning', iconColor:'text-tertiary' },
+              success: { bg:'bg-primary/5', border:'border-primary/15', icon:'check_circle', iconColor:'text-primary' },
+              error: { bg:'bg-error/5', border:'border-error/15', icon:'error', iconColor:'text-error' },
+            };
+            const c = colors[a.severity];
+            return (
+              <div key={i} className={`${c.bg} ${c.border} border rounded-xl p-3 flex items-start gap-2.5`}>
+                <Icon name={c.icon} className={`${c.iconColor} text-base mt-0.5`} fill />
+                <div className="flex-1">
+                  <div className="font-label text-xs text-white/80 leading-snug">{a.msg}</div>
+                  <div className="font-mono text-[9px] text-on-surface-variant/50 mt-1">{a.time}</div>
+                </div>
+              </div>
+            );
+          })}
+          <div className="mt-4 p-3 rounded-xl bg-white/[.02] border border-white/[.04]">
+            <div className="font-label text-[10px] text-on-surface-variant/60 mb-2 uppercase tracking-widest">Auto-monitoring checks</div>
+            {[
+              { check:'Test suite health', status:'pass', interval:'Every 30m' },
+              { check:'Deployment status', status:'pass', interval:'Every 5m' },
+              { check:'Sprint velocity', status:'pass', interval:'Every 1h' },
+              { check:'Agent heartbeats', status:'pass', interval:'Every 15s' },
+              { check:'FormEnvelope coverage', status:'warn', interval:'Every 2h' },
+            ].map((c, i) => (
+              <div key={i} className="flex items-center justify-between py-1.5 border-b border-white/[.03] last:border-0">
+                <span className="font-label text-[10px] text-on-surface-variant">{c.check}</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[8px] text-on-surface-variant/40">{c.interval}</span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${c.status==='pass'?'bg-primary':'bg-tertiary pulse-dot'}`} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================================
+// MAIN APP
+// ============================================================
+const App = () => {
+  const [claudeOpen, setClaudeOpen] = useState(false);
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const iv = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(iv);
+  }, []);
+
+  return (
+    <div className={`min-h-screen bg-background transition-all ${claudeOpen ? 'mr-[28rem]' : ''}`}>
+      {/* Scanner line decoration */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-20">
+        <div className="scanner-line absolute left-0 w-full"></div>
+      </div>
+
+      {/* TOP BAR */}
+      <header className="sticky top-0 z-40 flex items-center justify-between px-6 py-4 bg-surface/80 backdrop-blur-xl border-b border-white/[.04]">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg kinetic-gradient flex items-center justify-center">
+              <Icon name="monitor_heart" className="text-on-primary text-base" fill />
+            </div>
+            <div>
+              <h1 className="font-headline font-black text-sm tracking-tighter uppercase">
+                MotionOS <span className="text-primary text-[9px] tracking-widest ml-1">COMMAND</span>
+              </h1>
+              <div className="font-mono text-[9px] text-on-surface-variant/50">
+                {now.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})} · {now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* System status pills */}
+          <div className="hidden md:flex items-center gap-2 mr-4">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/8 border border-primary/15">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary pulse-dot"></span>
+              <span className="font-mono text-[8px] text-primary font-bold">PROD LIVE</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/8 border border-primary/15">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+              <span className="font-mono text-[8px] text-primary font-bold">1,323 TESTS</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary/8 border border-tertiary/15">
+              <span className="w-1.5 h-1.5 rounded-full bg-tertiary pulse-dot"></span>
+              <span className="font-mono text-[8px] text-tertiary font-bold">1 BLOCKED</span>
+            </div>
+          </div>
+
+          {/* Claude toggle */}
+          <button onClick={() => setClaudeOpen(!claudeOpen)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-headline font-bold text-[11px] uppercase tracking-wider transition-all active:scale-95 ${
+              claudeOpen
+                ? 'bg-primary text-on-primary glow-primary'
+                : 'bg-surface-container-high border border-white/10 text-white hover:border-primary/30'
+            }`}>
+            <Icon name="smart_toy" className="text-sm" fill />
+            Claude AI
+          </button>
+        </div>
+      </header>
+
+      {/* MAIN GRID */}
+      <main className="relative z-10 p-6 max-w-[1400px] mx-auto">
+        {/* Key metrics */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 fade-in">
+          <MetricCard label="Sprint Progress" value="42%" sub="Sprint 10 · 7/18 tasks" icon="sprint" color="primary" trend={8} />
+          <MetricCard label="Tests Passing" value="1,323" sub="33 files · 0 failures" icon="check_circle" color="primary" trend={15} />
+          <MetricCard label="Form Envelopes" value="5/8" sub="62.5% complete" icon="accessibility_new" color="secondary" trend={25} />
+          <MetricCard label="Active Agents" value="13" sub="3 teams running" icon="smart_toy" color="tertiary" />
+        </div>
+
+        {/* Two-column layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Left column — 2/3 */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <SprintTracker />
+              <TestHealth />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <DeploymentStatus />
+              <FormEnvelopes />
+            </div>
+          </div>
+
+          {/* Right column — 1/3 */}
+          <div className="space-y-4">
+            <TeamStatus />
+            <ActivityFeed />
+          </div>
+        </div>
+
+        {/* Architecture badges */}
+        <div className="mt-6 flex flex-wrap items-center gap-2 opacity-50">
+          {['On-Device Processing','Form Envelope DB','Silence Protocol','Bridge Module','MediaPipe/MoveNet','17 Joints · 64 Muscles'].map((tag,i) => (
+            <span key={i} className="px-3 py-1.5 rounded-full border border-white/5 font-mono text-[8px] text-on-surface-variant uppercase tracking-widest">
+              {tag}
+            </span>
+          ))}
+        </div>
+      </main>
+
+      {/* Claude Panel */}
+      <ClaudePanel isOpen={claudeOpen} onToggle={() => setClaudeOpen(false)} />
+    </div>
+  );
+};
+
+createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
