@@ -86,6 +86,5 @@ export default async (req) => {
 };
 
 export const config = {
-  path: "/.netlify/functions/monitor",
   schedule: "@hourly",
 };
